@@ -43,11 +43,11 @@ func TestVariables(){
 	f:="short"
 	println(f)
 }
-const s string = "constant";
+const ss string = "constant";
 func TestConstants(){
 	println("--->ConstantsTest")
 
-	println(s)
+	println(ss)
 
 	const n = 50000000
 	const d = 3e20/n
@@ -272,7 +272,7 @@ func TestMultipleReturn(){
 	println(c)
 }
 
-func sum(nums ...int){
+func sum1(nums ...int){
 	println("nums:",nums)
 
 	sum:=0
@@ -282,11 +282,11 @@ func sum(nums ...int){
 	println("sum:",sum)
 }
 func TestVariadicFunctions(){
-	sum(1,2)
-	sum(1,2,3)
+	sum1(1,2)
+	sum1(1,2,3)
 
 	nums:=[]int{1,2,3,4,5,6,7,8,9}
-	sum(nums...)
+	sum1(nums...)
 }
 
 
