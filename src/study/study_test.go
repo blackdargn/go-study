@@ -7,4 +7,10 @@ func Test(t *testing.T){
 	TestPointer()
 	TestStructs()
 	TestMethods()
+	TestInterfaces()
+	TestError()
+	TestGoroutines()
+	TestChannels()
+	TestChannelBuffering()
+	TestChannelSynchronization()
 }

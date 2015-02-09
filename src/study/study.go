@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"time"
+	"errors"
 )
 
 func println(a ...interface{})(n int, err error){
@@ -389,7 +390,153 @@ func TestMethods(){
 	println("prim", sp.prim())
 }
 
+type geometry interface {
+	area() float64
+	prim() float64
+}
+type square struct {
+	width,height float64
+}
+type circle struct {
+	radius float64
+}
+func (s square)area() float64{
+	return s.width*s.height
+}
+func (s square)prim() float64{
+	return 2*s.width+2*s.height
+}
+func (c circle)area() float64{
+	return math.Pi*c.radius*c.radius
+}
+func (c circle)prim() float64{
+	return 2*math.Pi*c.radius
+}
+func measure(g geometry){
+	println(g)
+	println(g.area())
+	println(g.prim())
+}
 
 func TestInterfaces(){
+	println("--->TestInterfaces")
 
+	s:=square{width:3,height:4}
+	c:=circle{radius:5}
+
+	measure(s)
+	measure(c)
+}
+
+
+func f1(arg int)(int, error){
+	if arg == 42 {
+		return -1, errors.New("con not work with 42!")
+	}
+	return arg+3, nil
+}
+type argError struct {
+	arg int
+	prob string
+}
+func (e *argError) Error() string{
+	return fmt.Sprintf("%d - %s", e.arg, e.prob)
+}
+func f2(arg int)(int, error){
+	if arg == 42 {
+		return -1, &argError{arg, "con not work with 42!"}
+	}
+	return arg+3, nil
+}
+func TestError(){
+	println("--->TestError")
+
+	for _, i:= range []int{7, 42}{
+		if r,e := f1(i); e != nil{
+			println("f1 failed", e)
+		}else{
+			println("f1 worked", r)
+		}
+	}
+
+	for _, i:= range []int{7, 42}{
+		if r,e := f2(i); e != nil{
+			println("f2 failed", e)
+		}else{
+			println("f2 worked", r)
+		}
+	}
+
+	_,e:=f2(42)
+	if ae,ok := e.(*argError); ok{
+		println(ae.arg)
+		println(ae.prob)
+	}
+}
+
+
+func f(from string){
+	for i:=0;i<3;i++{
+		println(from,":",i)
+	}
+}
+func TestGoroutines(){
+	println("--->TestGoroutines")
+
+	f("direct")
+
+	go f("goroutine1")
+	go func(msg string){
+		println(msg)
+	}("going")
+	go f("goroutine2")
+
+	var input string
+	fmt.Scanln(&input)
+	println("done")
+}
+
+
+func TestChannels(){
+	println("--->TestChannels")
+
+	messages := make(chan string)
+
+	go func(){
+		messages<-"ping"
+	}()
+
+	msg := <-messages
+	println(msg)
+}
+
+
+func TestChannelBuffering(){
+	println("--->TestChannelBuffering")
+
+	messages := make(chan string, 2)
+
+	messages <- "buffered"
+	messages <- "channel"
+
+	println(<-messages, <-messages)
+}
+
+
+func worker(done chan bool){
+	println("woking ...")
+	time.Sleep(time.Second)
+	println("done")
+
+	done<-true
+}
+
+func TestChannelSynchronization(){
+	println("--->TestChannelSynchronization")
+
+	done := make(chan bool, 1)
+	go worker(done)
+
+	<-done
+	println("finish")
 }
