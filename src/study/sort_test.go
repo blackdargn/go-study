@@ -5,14 +5,15 @@ import (
 	"time"
 	"sort"
 	"math/rand"
+	"testing"
 )
 
-func TestSort(){
+func TestSort(t *testing.T){
 //	testQuickSort()
 //	testQuickSort2()
-	testQuickSort3()
-	testHeapSort()
-	testMergeSort()
+//	testQuickSort3()
+//	testHeapSort()
+//	testMergeSort()
 }
 
 const size int = 10000000

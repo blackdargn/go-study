@@ -39,7 +39,7 @@ var (
 
 var pow = []int{1, 2, 4, 8, 16, 32, 64, 128}
 
-func TestStudy(){
+func TestStudy2(){
 	c,python,java := true, false , "no"
 	fmt.Println(x,y,z,c,python,java,wrold)
 	fmt.Println(swap("hello","world"))

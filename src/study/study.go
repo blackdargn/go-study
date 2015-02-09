@@ -282,6 +282,8 @@ func sum1(nums ...int){
 	println("sum:",sum)
 }
 func TestVariadicFunctions(){
+	println("--->TestVariadicFunctions")
+
 	sum1(1,2)
 	sum1(1,2,3)
 
@@ -289,8 +291,105 @@ func TestVariadicFunctions(){
 	sum1(nums...)
 }
 
-
+func intSeq() func() int{
+	i:=0
+	return func() int{
+		i+=1
+		return i
+	}
+}
 func TestClosures(){
+	println("--->TestClosures")
 
+	nextInt := intSeq()
+
+	println(nextInt())
+	println(nextInt())
+	println(nextInt())
+
+	nextNInt := intSeq()
+	println(nextNInt())
 }
 
+func fact(n int)int{
+	if n == 0{return 1}
+	return n*fact(n-1)
+}
+func TestRecursion(){
+	println("--->TestClosures")
+	println(fact(7))
+}
+
+
+func zeroVal(ival int){
+	ival = 0
+}
+func zeroPtr(iptr *int){
+	*iptr = 0
+}
+func TestPointer(){
+	println("--->TestPointer")
+
+	i:=1
+
+	println("initial", i)
+
+	zeroVal(i)
+	println("zeroVal", i)
+
+	zeroPtr(&i)
+	println("zeroPtr", i)
+
+	println("pointer", &i)
+}
+
+type person struct {
+	name string
+	age int
+}
+func TestStructs(){
+	println("--->TestStructs")
+
+	println(person{"bob",20})
+	println(person{name:"Alice", age:30})
+	println(person{name:"Fred"})
+	println(&person{name:"Ann", age:40})
+
+	s:= person{"Sean", 50}
+	println(s.name)
+
+	sp:=&s
+	println(sp.age)
+
+	sp.age = 51
+	println(sp.age)
+	println(s.age)
+}
+
+type rect struct {
+	width,height int
+}
+func (r *rect) area() int{
+	return r.width*r.height
+}
+func (r rect)  prim() int{
+	return 2*r.width + 2*r.height
+}
+
+func TestMethods(){
+	println("--->TestMethods")
+
+	r:=rect{width:10,height:5}
+
+	println("area", r.area())
+	println("prim", r.prim())
+
+	sp := &r
+	println("area", sp.area())
+	println("prim", sp.prim())
+}
+
+
+func TestInterfaces(){
+
+}
