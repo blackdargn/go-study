@@ -523,7 +523,7 @@ func TestChannelBuffering(){
 }
 
 
-func worker(done chan bool){
+func worker1(done chan bool){
 	println("woking ...")
 	time.Sleep(time.Second)
 	println("done")
@@ -535,8 +535,240 @@ func TestChannelSynchronization(){
 	println("--->TestChannelSynchronization")
 
 	done := make(chan bool, 1)
-	go worker(done)
+	go worker1(done)
 
 	<-done
 	println("finish")
+}
+
+
+func ping(pings chan<-string, msg string){
+	pings<-msg
+}
+
+func pong(pings <-chan string, pongs chan<-string){
+	msg:=<-pings
+	pongs<-msg
+}
+func TestChannelDirections(){
+	println("--->TestChannelDirections")
+
+	pings:=make(chan string,1)
+	pongs:=make(chan string,1)
+	ping((chan<-string)(pings), "pressed message")
+	pong((<-chan string)(pings), (chan<-string)(pongs))
+
+	println("pongs", <-pongs)
+}
+
+func TestSelect(){
+	println("--->TestSelect")
+
+	c1:=make(chan string,1)
+	c2:=make(chan string,1)
+
+	go func (){
+		time.Sleep(time.Second)
+		c1<-"one"
+	}()
+	go func(){
+		time.Sleep(time.Second*2)
+		c2<-"two"
+	}()
+
+	for i:=0; i<2; i++{
+		select {
+		case msg1:=<-c1:
+			println("received",msg1)
+		case msg2:=<-c2:
+			println("received",msg2)
+		}
+	}
+}
+
+func TestTimeouts(){
+	println("--->TestTimeouts")
+
+	c1:=make(chan string,1)
+	go func(){
+		time.Sleep(time.Second*2)
+		c1<-"result1"
+	}()
+
+	select {
+	case res:=<-c1:
+		println(res)
+	case <-time.After(time.Second*1):
+		println("tiemout 1")
+	}
+
+	c2:=make(chan string,1)
+	go func(){
+		time.Sleep(time.Second*2)
+		c2<-"result2"
+	}()
+
+	select {
+	case res:=<-c2:
+		println(res)
+	case <-time.After(time.Second*3):
+		println("timeout2")
+	}
+}
+
+func TestNonBlockingChannel(){
+	println("--->TestNonBlockingChannel")
+
+	messages:=make(chan string)
+	signals:=make(chan bool)
+
+	select {
+		case msg:=<-messages:
+			println("received",msg)
+	 	default:
+			println("no messages received")
+	}
+
+	msg:="hi"
+	select {
+	case messages<-msg:
+		println("msg sent", msg)
+	default:
+		println("no msg sent")
+	}
+
+	select {
+	case msg:=<-messages:
+		println("received msg",msg)
+	case sig:=<-signals:
+		println("received signals", sig)
+	default:
+		println("no activity")
+	}
+}
+
+func TestClosingChannels(){
+	println("--->TestClosingChannels")
+
+	jobs:=make(chan int, 5)
+	done:=make(chan bool)
+
+	go func(){
+		for {
+			j,more:=<-jobs
+			if more{
+				println("received jobs", j)
+			}else{
+				println("receoved all jobs")
+				done<-true
+				return
+			}
+		}
+	}()
+
+	for i:=0; i<3; i++{
+		jobs<-i
+		println("sent job", i)
+	}
+	close(jobs)
+	println("sent all jobs")
+	<-done
+}
+
+func TestRangeOverChannels(){
+	println("--->TestRangeOverChannels")
+
+	queue:=make(chan string,2)
+	queue<-"one"
+	queue<-"two"
+	close(queue)
+
+	for elem := range queue{
+		println(elem)
+	}
+}
+
+func TestTimers(){
+	println("--->TestTimers")
+
+	timer1:=time.NewTimer(time.Second*2)
+
+	<-timer1.C
+	println("Timer1 expired")
+
+	timer2:=time.NewTimer(time.Second)
+	go func() {
+		<-timer2.C
+		println("Timer2 expired")
+	}()
+	stop2:=timer2.Stop()
+	if stop2 {
+		println("Timer2 stopped")
+	}
+}
+
+func TestTickers(){
+	println("--->TestTickers")
+
+	ticker := time.NewTicker(time.Millisecond*500)
+	go func() {
+		for t := range ticker.C{
+			println(t)
+		}
+	}()
+	time.Sleep(time.Second*2)
+	ticker.Stop()
+	println("ticker stopped")
+}
+
+func worker(id int, jobs <-chan int, result chan<-int, done chan int){
+	for {
+		j,more:= <-jobs
+		if(more) {
+			println("worker ", id, "processing job", j)
+			time.Sleep(time.Second)
+			result<- 2*j
+		}else{
+			done<-1
+			break
+		}
+	}
+	println("worker finish", id)
+}
+func collect(result chan int, done chan int){
+	for {
+		a,more:= <-result
+		if(more) {
+			println(a)
+		}else{
+			println("result end")
+			done<-1
+			break
+		}
+	}
+}
+func TestWorkerPool(){
+	println("--->TestWorkerPool")
+
+	jobs:=make(chan int, 100)
+	result:=make(chan int, 100)
+	done:=make(chan int)
+
+	for i:=0;  i< 3; i++{
+		go worker(i, (<-chan int)(jobs), (chan<-int)(result), done)
+	}
+
+	for j:=0; j< 9; j++{
+		jobs<-j
+	}
+	close(jobs)
+
+	go collect(result, done)
+
+	for d:=0; d<4; d++{
+		<-done
+		if d == 2{
+			close(result)
+		}
+	}
 }
