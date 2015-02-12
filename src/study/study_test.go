@@ -21,5 +21,13 @@ func Test(t *testing.T){
 //	TestRangeOverChannels()
 //	TestTimers()
 //	TestTickers()
-	TestWorkerPool()
+//	TestWorkerPool()
+//	TestRateLimiting()
+//	TestAtomicCounters()
+//	TestMutexes()
+//	TestStatefulGoroutines()
+//	TestSorting()
+	TestFunctionsSort()
 }
+
+

@@ -5,6 +5,11 @@ import (
 	"math"
 	"time"
 	"errors"
+	"sync/atomic"
+	"runtime"
+	"sync"
+	"math/rand"
+	"sort"
 )
 
 func println(a ...interface{})(n int, err error){
@@ -771,4 +776,217 @@ func TestWorkerPool(){
 			close(result)
 		}
 	}
+}
+
+
+func TestRateLimiting(){
+	println("--->TestRateLimiting")
+
+	requests := make(chan int, 5)
+	for i:=1; i<=5; i++{
+		requests<-i
+	}
+	close(requests)
+
+	limiter := time.Tick(time.Millisecond*200)
+	for req:=range requests{
+		<-limiter
+		println("request", req, time.Now())
+	}
+
+	burstyLimiter := make(chan time.Time, 3)
+	for i:=0; i<3; i++{
+		burstyLimiter<-time.Now()
+	}
+	go func() {
+		for t := range time.Tick(time.Millisecond*200){
+			burstyLimiter<-t
+		}
+	}()
+
+	burstyRequests := make(chan int, 5)
+	for i:=1; i<=5; i++{
+		burstyRequests<-i
+	}
+	close(burstyRequests)
+
+	for req:=range burstyRequests{
+		t:= <-burstyLimiter
+		println("request2", req, t)
+	}
+}
+
+
+func TestAtomicCounters(){
+	println("--->TestAtomicCounters")
+
+	var ops uint64 = 0
+	for i:=0; i < 500; i++{
+		go func() {
+			for i:=0; i <30; i++{
+				atomic.AddUint64(&ops, 1)
+				//ops++
+				runtime.Gosched()
+			}
+		}()
+	}
+
+	time.Sleep(time.Second)
+	finalOps := atomic.LoadUint64(&ops)
+	//finalOps := ops
+	println("final ops", finalOps)
+}
+
+func TestMutexes(){
+	println("--->TestMutexes")
+
+	state := make(map[int]int)
+	mutex := &sync.Mutex{}
+	var opsRead,opsWrite uint64 = 0,0
+
+	for r:=0 ; r < 100; r++{
+		go func() {
+			total := 0
+			for {
+				key:=rand.Intn(5)
+
+				mutex.Lock()
+				total+=state[key]
+				mutex.Unlock()
+
+				atomic.AddUint64(&opsRead, 1)
+				runtime.Gosched()
+			}
+		}()
+	}
+
+	for w:=0; w<10; w++{
+		go func() {
+			for {
+				key:=rand.Intn(5)
+				val:=rand.Intn(100)
+
+				mutex.Lock()
+				state[key] = val
+				mutex.Unlock()
+
+				atomic.AddUint64(&opsWrite, 1)
+				runtime.Gosched()
+			}
+		}()
+	}
+
+	time.Sleep(time.Second)
+
+	opsReadF := atomic.LoadUint64(&opsRead)
+	println("final opsRead", opsReadF)
+	opsWriteF := atomic.LoadUint64(&opsWrite)
+	println("final opsWrite", opsWriteF)
+
+	mutex.Lock()
+	println(state)
+	mutex.Unlock()
+}
+
+type readOp struct {
+	key int
+	resp chan int
+}
+type writeOp struct {
+	key int
+	val int
+	resp chan bool
+}
+func TestStatefulGoroutines(){
+	println("--->TestStatefulGoroutines")
+
+	var opsRead,opsWrite uint64 = 0,0
+
+	reads := make(chan *readOp)
+	writes:= make(chan *writeOp)
+
+	go func() {
+		var state = make(map[int]int)
+		for {
+			select {
+			case read:=<-reads:
+				read.resp<-state[read.key]
+			case write:=<-writes:
+				state[write.key] = write.val
+				write.resp<-true
+			}
+		}
+	}()
+
+	for r :=0; r< 100; r++{
+		go func() {
+			read := &readOp{
+			key:rand.Intn(5),
+			resp:make(chan int)}
+			for {
+				read.key = rand.Intn(5)
+				reads<-read
+				<-read.resp
+				atomic.AddUint64(&opsRead, 1)
+			}
+		}()
+	}
+
+	for w:=0; w<10; w++{
+		go func() {
+			write:= &writeOp{
+			key:rand.Intn(5),
+			val:rand.Intn(10),
+			resp:make(chan bool)}
+			for {
+				write.key = rand.Intn(5)
+				write.val = rand.Intn(10)
+				writes<-write
+				<-write.resp
+				atomic.AddUint64(&opsWrite, 1)
+			}
+		}()
+	}
+
+	time.Sleep(time.Second)
+
+	opsReadF := atomic.LoadUint64(&opsRead)
+	println("final opsRead", opsReadF)
+	opsWriteF := atomic.LoadUint64(&opsWrite)
+	println("final opsWrite", opsWriteF)
+}
+
+
+func TestSorting(){
+	println("--->TestSorting")
+
+	strs := []string{"d", "c", "a"}
+	sort.Strings(strs)
+	println("strings", strs)
+
+	ints := []int{7,2,4}
+	sort.Ints(ints)
+	println("ints", ints)
+
+	s:=sort.IntsAreSorted(ints)
+	println("sorted", s)
+}
+
+
+type ByLength []string
+func (s ByLength) Len()int{
+	return len(s)
+}
+func (s ByLength) Swap(i,j int){
+	s[i], s[j] = s[j], s[i]
+}
+func (s ByLength) Less(i,j int) bool{
+	return len(s[i]) < len(s[j])
+}
+func TestFunctionsSort(){
+	println("--->TestFunctionsSort")
+
+	fruits := []string{"peach", "banana", "kiwi"}
+	sort.Sort(ByLength(fruits))
+	println(fruits)
 }
