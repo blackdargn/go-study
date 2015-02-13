@@ -10,11 +10,14 @@ import (
 	"sync"
 	"math/rand"
 	"sort"
+	"os"
+	str "strings"
+	"regexp"
+	"bytes"
+	"encoding/json"
 )
 
-func println(a ...interface{})(n int, err error){
-	return fmt.Println(a);
-}
+var println = fmt.Println
 
 func HelloWorld(){
 	println("Hello Go World!")
@@ -989,4 +992,262 @@ func TestFunctionsSort(){
 	fruits := []string{"peach", "banana", "kiwi"}
 	sort.Sort(ByLength(fruits))
 	println(fruits)
+}
+
+
+func TestPanic(){
+	println("--->TestPanic")
+
+	panic("a problem")
+
+	_, err := os.Create("/tmp/file")
+	if err != nil {
+		panic(err)
+	}
+}
+
+
+func TestDefer(){
+	println("--->TestDefer")
+
+	file := createFile("/tmp/defer.txt")
+	defer closeFile(file)
+	writeFile(file)
+}
+func createFile(p string) *os.File{
+	println("creating")
+	f,err:=os.Create(p)
+	if err!=nil {
+		panic(err)
+	}
+	return f
+}
+func writeFile(file *os.File){
+	println("writing")
+	fmt.Fprintln(file, "data")
+}
+func closeFile(file *os.File){
+	println("closing")
+	file.Close()
+}
+
+
+func TestCollectionFunctions(){
+	println("--->TestCollectionFunctions")
+
+	var strs = []string{"peach", "apple", "pear", "plum"}
+
+	println("index", Index(strs,"apple"))
+	println("include", Include(strs,"grape"))
+	println("any", Any(strs, func(v string)bool{
+				return str.HasPrefix(v, "p")
+			}))
+	println("all", All(strs, func(v string)bool{
+				return str.HasPrefix(v, "p")
+			}))
+	println("filter", Filter(strs, func(v string)bool{
+				return str.Contains(v, "e")
+			}))
+	println("map", Map(strs, str.ToUpper))
+}
+func Index(vs []string, t string) int{
+	for i,s := range vs{
+		if s == t {
+			return i
+		}
+	}
+	return -1
+}
+func Include(vs []string, t string) bool{
+	return Index(vs, t) > 0
+}
+func Any(vs []string, f func(string) bool) bool{
+	for _,s := range vs{
+		if f(s) {
+			return true
+		}
+	}
+	return false
+}
+func All(vs []string, f func(string) bool) bool{
+	for _,s := range vs{
+		if !f(s) {
+			return false
+		}
+	}
+	return true
+}
+func Filter(vs []string, f func(string) bool)[]string{
+	vsf := make([]string, 0)
+	for _,s := range vs{
+		if f(s) {
+			vsf = append(vsf, s)
+		}
+	}
+	return vsf
+}
+func Map(vs []string, f func(string) string)[]string{
+	vsm := make([]string, len(vs))
+	for i, s := range vs{
+		vsm[i] = f(s)
+	}
+	return vsm
+}
+
+
+func TestStringFunctions(){
+	println("--->TestStringFunctions")
+
+	println("Contains", str.Contains("test","es"))
+	println("Count", str.Count("test","t"))
+	println("HasPrefix", str.HasPrefix("test", "t"))
+	println("HasSuffix", str.HasSuffix("test", "st"))
+	println("Index",str.Index("test", "e"))
+	println("Join",[]string{"a","b"}, "-")
+	println("Repeat",str.Repeat("a", 5))
+	println("Replace", str.Replace("foo","o","i", -1))
+	println("Replace", str.Replace("foo","o","i", 1))
+	println("Split", str.Split("a-b-c-d-e", "-"))
+	println("ToLower", str.ToLower("TEST"))
+	println("ToUpper", str.ToUpper("test"))
+
+	println()
+	println("len", len("hello"))
+	println("char", "hello"[0])
+}
+
+type point struct {
+	x,y int
+}
+func TestStringFormatting(){
+	println("--->TestStringFormatting")
+
+	p := point{1,2}
+	fmt.Printf("%v\n", p)
+	fmt.Printf("%+v\n", p)
+	fmt.Printf("%#v\n", p)
+	fmt.Printf("%T\n", p)
+
+	fmt.Printf("%t\n", true)
+	fmt.Printf("%d\n", 123)
+	fmt.Printf("%b\n", 123)
+	fmt.Printf("%c\n", 123)
+	fmt.Printf("%x\n", 123)
+	fmt.Printf("%f\n", 12.3)
+	fmt.Printf("%e\n", 12000000000000000.3)
+	fmt.Printf("%E\n", 12000000000000000.3)
+	fmt.Printf("%s\n", "\"string\"")
+	fmt.Printf("%q\n", "\"string\"")
+	fmt.Printf("%x\n", "hex")
+
+	fmt.Printf("%p\n", &p)
+
+	fmt.Printf("|%6d|%6d|\n", 12, 345)
+	fmt.Printf("|%6.2f|%6.2f|\n", 1.2, 3.45)
+	fmt.Printf("|%-6.2f|%-6.2f|\n", 1.2, 3.45)
+
+	fmt.Printf("|%6s|%6s|\n", "foo", "b")
+	fmt.Printf("|%-6s|%-6s|\n", "foo", "b")
+
+	s:=fmt.Sprintf("a %s", "string")
+	println(s)
+
+	fmt.Fprintf(os.Stderr,"an %s\n", "error")
+}
+
+
+func TestRegularExpressions(){
+	println("--->TestStringFormatting")
+
+	match, str := regexp.MatchString("p([a-z]+)ch", "peach")
+	println(match, str)
+
+	r,_ := regexp.Compile("p([a-z]+)ch")
+
+	println("match", r.MatchString("peach"))
+	println("find",  r.FindString("peach punch"))
+	println("find index",  r.FindStringIndex("peach punch"))
+	println("find sub",  r.FindStringSubmatch("peach punch"))
+	println("find subindex",  r.FindStringSubmatchIndex("peach punch"))
+	println("find all", r.FindAllString("peach punch pinch", -1))
+	println("find all subindex", r.FindAllStringSubmatchIndex("peach punch pinch", -1))
+	println("find all 2", r.FindAllString("peach punch pinch", 2))
+	println("match", r.Match([]byte("peach")))
+
+	r = regexp.MustCompile("p([a-z]+)ch")
+	println(r)
+	println("replace all", r.ReplaceAllString("a peach", "<fruit>"))
+
+	in:=[]byte(" a peach")
+	out := r.ReplaceAllFunc(in, bytes.ToUpper)
+	println(string(out))
+}
+
+
+type Response1 struct {
+	Page int
+	Fruits []string
+}
+type Response2 struct {
+	Page int `json:"page"`
+	Fruits []string `json:"fruits"`
+}
+func TestJSON(){
+	println("--->TestJSON")
+
+	bolB,_ := json.Marshal(true)
+	println(string(bolB))
+
+	intB,_ := json.Marshal(1)
+	println(string(intB))
+
+	fltB, _ := json.Marshal(2.34)
+	println(string(fltB))
+
+	strB, _ := json.Marshal("gopher")
+	println(string(strB))
+
+	slcD := []string{"apple", "peach", "pear"}
+	slcB, _ := json.Marshal(slcD)
+	println(string(slcB))
+
+	mapD := map[string]int{"apple": 5, "lettuce": 7}
+	mapB, _ := json.Marshal(mapD)
+	println(string(mapB))
+
+	res1D := &Response1{
+		Page:1,
+		Fruits:[]string{"apple", "peach", "pear"}}
+	res1B, _ := json.Marshal(res1D)
+	println(string(res1B))
+
+	res2D := &Response2{
+		Page:   1,
+		Fruits: []string{"apple", "peach", "pear"}}
+	res2B, _ := json.Marshal(res2D)
+	println(string(res2B))
+
+	byt := []byte(`{"num":6.13,"strs":["a","b"]}`)
+	var data map[string]interface {}
+
+	if err := json.Unmarshal(byt, &data); err != nil{
+		panic(err)
+	}
+	println(data)
+
+	num:=data["num"].(float64)
+	println(num)
+	strs:=data["strs"].([]interface{})
+	str1:=strs[0].(string)
+	println(str1)
+
+	str := `{"page": 1, "fruits": ["apple", "peach"]}`
+	res2 := &Response2{}
+	json.Unmarshal([]byte(str), res2)
+	println(res2)
+	println(res2.Fruits[0])
+
+	enc := json.NewEncoder(os.Stdout)
+	d := map[string]int{"apple": 5, "lettuce": 7}
+	enc.Encode(d)
 }

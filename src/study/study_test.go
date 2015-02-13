@@ -27,7 +27,14 @@ func Test(t *testing.T){
 //	TestMutexes()
 //	TestStatefulGoroutines()
 //	TestSorting()
-	TestFunctionsSort()
+//	TestFunctionsSort
+//	TestPanic()
+//	TestDefer()
+//	TestCollectionFunctions()
+//	TestStringFunctions()
+//	TestStringFormatting()
+//	TestRegularExpressions()
+	TestJSON()
 }
 
 
