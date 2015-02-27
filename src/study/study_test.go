@@ -34,7 +34,10 @@ func Test(t *testing.T){
 //	TestStringFunctions()
 //	TestStringFormatting()
 //	TestRegularExpressions()
-	TestJSON()
+//	TestJSON()
+//	TestCommandLineArguments()
+//	TestCommandLineFlag()
+	TestEnvironmentVariables()
 }
 
 

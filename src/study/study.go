@@ -15,6 +15,11 @@ import (
 	"regexp"
 	"bytes"
 	"encoding/json"
+	"flag"
+	"os/exec"
+	"io/ioutil"
+	"syscall"
+	"os/signal"
 )
 
 var println = fmt.Println
@@ -1251,3 +1256,119 @@ func TestJSON(){
 	d := map[string]int{"apple": 5, "lettuce": 7}
 	enc.Encode(d)
 }
+
+
+func TestCommandLineArguments(){
+	println("--->TestCommandLineArguments")
+
+	argsWithProg := os.Args
+	argsWithNoProg := os.Args[1:]
+	arg := os.Args[3]
+
+	println(argsWithProg)
+	println(argsWithNoProg)
+	println(arg)
+}
+
+
+func TestCommandLineFlag(){
+	println("--->TestCommandLineFlag")
+
+	wordPtr := flag.String("word","foo","a string")
+	intPrt := flag.Int("numb", 42, "an int")
+	boolPtr := flag.Bool("fork", false, "a bool")
+	var svar string
+	flag.StringVar(&svar, "svar", "bar", "a string var")
+
+	flag.Parse()
+
+	println("word:",*wordPtr)
+	println("numb:",*intPrt)
+	println("fork:",*boolPtr)
+	println("svar:",svar)
+	println("tail:",flag.Args())
+}
+
+func TestEnvironmentVariables(){
+	println("--->TestEnvironmentVariables")
+
+	os.Setenv("FOO", "1")
+	println("FOO:", os.Getenv("FOO"))
+	println("BAR:", os.Getenv("BAR"))
+
+	for _,e := range os.Environ(){
+		pair := str.Split(e, "=")
+		println(pair[0],"=", pair[1])
+	}
+}
+
+func TestSpawningProcesses(){
+	println("--->TestSpawningProcesses")
+
+	dateCmd := exec.Command("date")
+	dateOut,err := dateCmd.Output()
+	if err != nil {
+		panic(err)
+	}
+	println(">date", string(dateOut))
+
+	grepCmd := exec.Command("grep", "hello")
+	grepIn,_ := grepCmd.StdinPipe()
+	grepOut,_ := grepCmd.StdoutPipe()
+	grepCmd.Start()
+
+	grepIn.Write([]byte("hello grep\ngoodbye grep"))
+	grepIn.Close()
+
+	grepBytes,_ := ioutil.ReadAll(grepOut)
+	grepCmd.Wait()
+
+	println(">grep hello")
+	println(string(grepBytes))
+
+	lsCmd := exec.Command("bash", "-c", "ls -a -l -h")
+	lsOut, err := lsCmd.Output()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("> ls -a -l -h")
+	fmt.Println(string(lsOut))
+}
+
+
+func TestExecingProcesses(){
+	println("--->TestExecingProcesses")
+
+	binary,lookErr := exec.LookPath("ls")
+	if lookErr != nil {
+		panic(lookErr)
+	}
+	args := []string{"ls", "-a", "-l", "-h"}
+	env := os.Environ()
+
+	execErr := syscall.Exec(binary, args, env)
+	if execErr != nil {
+		panic(execErr)
+	}
+}
+
+
+func TestSignals(){
+	println("--->TestSignals")
+
+	sigs := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		sig := <-sigs
+		println(sig)
+		done<-true
+	}()
+
+	println("awaiting signal")
+	<-done
+	println("exiting")
+}
+
