@@ -3,6 +3,7 @@ package study
 import "testing"
 
 func Test(t *testing.T){
+	TestStart()
 //	TestRecursion()
 //	TestPointer()
 //	TestStructs()
@@ -37,7 +38,7 @@ func Test(t *testing.T){
 //	TestJSON()
 //	TestCommandLineArguments()
 //	TestCommandLineFlag()
-	TestEnvironmentVariables()
+//	TestEnvironmentVariables()
 }
 
 
