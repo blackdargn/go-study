@@ -3,7 +3,7 @@ package study
 import "testing"
 
 func Test(t *testing.T){
-	TestStart()
+//	TestStart()
 //	TestRecursion()
 //	TestPointer()
 //	TestStructs()
@@ -31,6 +31,7 @@ func Test(t *testing.T){
 //	TestFunctionsSort
 //	TestPanic()
 //	TestDefer()
+    TestRecover()
 //	TestCollectionFunctions()
 //	TestStringFunctions()
 //	TestStringFormatting()

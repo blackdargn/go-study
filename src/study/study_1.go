@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"syscall"
 	"os/signal"
+    "strconv"
 )
 
 var println = fmt.Println
@@ -1011,6 +1012,45 @@ func TestPanic(){
 	}
 }
 
+
+func emptyStr(user string,) {
+    defer func(){
+        println("defer##", user)
+    }()
+    if user == "" {
+        println("@@@before panic")
+        panic("no value for user")
+        println("!!after panic")
+    } else{
+        println("value:",user)
+    }
+}
+func throwPanic(f func(string), id int, done chan bool)(b bool){
+    defer func() {
+        if x := recover(); x != nil {
+            println(x)
+            b = true
+        }
+        if id == 9 {
+            done <- true
+        }
+    }()
+    var val = ""
+    if id % 4 == 0{
+        val = strconv.Itoa(id)
+    }
+    f(val)
+    println("after the func run\n")
+    return b
+}
+func TestRecover(){
+    println("--->TestPanic Defer Recover")
+    done := make(chan bool)
+    for i:=0; i< 10; i++{
+        go throwPanic(emptyStr, i, done)
+    }
+    <-done
+}
 
 func TestDefer(){
 	println("--->TestDefer")
